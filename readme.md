@@ -123,6 +123,43 @@ gcc -m32 -o envaddr envaddr.c
 
 ---
 
+## (Added) Exact compile commands — alternative placement
+
+```bash
+# Compile retlib and envaddr for 32-bit
+gcc -m32 -fno-stack-protector -z noexecstack -o retlib retlib.c
+gcc -m32 -o envaddr envaddr.c
+```
+
+> **Security note:** `-z noexecstack` marks the binary as not requiring an executable stack (demonstrates ret2libc bypass of NX). Do this **only** in a controlled lab VM.
+
+---
+
+## (Added) Disable / re-enable ASLR (for reproducibility)
+
+Disabling ASLR makes addresses repeatable in this lab. Re-enable it after testing.
+
+```bash
+# Disable (lab only; requires root)
+sudo sysctl -w kernel.randomize_va_space=0
+
+# Re-enable when done
+sudo sysctl -w kernel.randomize_va_space=2
+```
+
+---
+
+## (Added) `envaddr` usage to get `/bin/sh` address
+
+```bash
+export MYSHELL=/bin/sh
+./envaddr
+# Example output: Address: 0xbfffff01
+# Use this value as sh_addr.
+```
+
+---
+
 ## Example workflow & output (illustrative)
 
 ```bash
@@ -146,5 +183,16 @@ echo $?  # -> 0
 
 
 ## Author
-Prepared by: Abdulrahman ALQunaibit
+Prepared by: Abdulrahman ALQunaibit  
 Lab date: October 2, 2025
+
+---
+
+If you'd like, I can now:
+
+- Insert these edits into the `README.md` file and return the raw Markdown ready to commit, or  
+- Produce a compact `gdb` helper script and a final `exploit.py` template with comments, or  
+- Make a short troubleshooting checklist section appended to the end.
+
+Which would you like next?
+
