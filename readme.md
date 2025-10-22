@@ -117,14 +117,6 @@ gcc -m32 -o envaddr envaddr.c
 
 ---
 
-##  Exact compile commands — alternative placement
-
-```bash
-# Compile retlib and envaddr for 32-bit
-gcc -m32 -fno-stack-protector -z noexecstack -o retlib retlib.c
-gcc -m32 -o envaddr envaddr.c
-```
-
 > **Security note:** `-z noexecstack` marks the binary as not requiring an executable stack (demonstrates ret2libc bypass of NX). Do this **only** in a controlled lab VM.
 
 ---
