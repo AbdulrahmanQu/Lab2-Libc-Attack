@@ -180,19 +180,3 @@ echo $?  # -> 0
 
 ---
 
-
-
-## Author
-Prepared by: Abdulrahman ALQunaibit  
-Lab date: October 2, 2025
-
----
-
-If you'd like, I can now:
-
-- Insert these edits into the `README.md` file and return the raw Markdown ready to commit, or  
-- Produce a compact `gdb` helper script and a final `exploit.py` template with comments, or  
-- Make a short troubleshooting checklist section appended to the end.
-
-Which would you like next?
-
