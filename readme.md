@@ -123,7 +123,7 @@ gcc -m32 -o envaddr envaddr.c
 
 ---
 
-## (Added) Exact compile commands — alternative placement
+##  Exact compile commands — alternative placement
 
 ```bash
 # Compile retlib and envaddr for 32-bit
@@ -135,7 +135,7 @@ gcc -m32 -o envaddr envaddr.c
 
 ---
 
-## (Added) Disable / re-enable ASLR (for reproducibility)
+##  Disable / re-enable ASLR (for reproducibility)
 
 Disabling ASLR makes addresses repeatable in this lab. Re-enable it after testing.
 
@@ -149,7 +149,7 @@ sudo sysctl -w kernel.randomize_va_space=2
 
 ---
 
-## (Added) `envaddr` usage to get `/bin/sh` address
+##  `envaddr` usage to get `/bin/sh` address
 
 ```bash
 export MYSHELL=/bin/sh
