@@ -160,7 +160,7 @@ export MYSHELL=/bin/sh
 
 ---
 
-## Example workflow & output (illustrative)
+## Example
 
 ```bash
 export MYSHELL=/bin/sh
