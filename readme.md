@@ -112,13 +112,6 @@ gcc -m32 -o retlib retlib.c -fno-stack-protector -z noexecstack
 # Compile envaddr helper
 gcc -m32 -o envaddr envaddr.c
 ```
-
-> Note: Some toolchains require additional packages (multilib). On Debian/Ubuntu you may need `gcc-multilib` and `libc6-dev-i386`.
-
----
-
-> **Security note:** `-z noexecstack` marks the binary as not requiring an executable stack (demonstrates ret2libc bypass of NX). Do this **only** in a controlled lab VM.
-
 ---
 
 ##  Disable / re-enable ASLR (for reproducibility)
