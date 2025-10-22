@@ -48,8 +48,6 @@ The attack bypasses the non-executable stack by overwriting the saved return add
 
 1. **Disable ASLR (for repeatable addresses in this lab)**
 
-   > **Warning:** Disabling ASLR affects system security. Do this only in a controlled lab VM and revert afterward.
-
    ```bash
    # As root
    echo 0 > /proc/sys/kernel/randomize_va_space
@@ -66,16 +64,12 @@ The attack bypasses the non-executable stack by overwriting the saved return add
    # Example output: Address: 0xbfffff01
    ```
 
-   Use GDB (or `readelf`/`objdump` on libc) to find `system()` and `exit()` addresses in the process's libc mapping. Example using GDB:
-
    ```gdb
    gdb -q ./retlib
    (gdb) run < badfile
    (gdb) p (void*) system
    (gdb) p (void*) exit
    ```
-
-   You may also attach to a running process or inspect `/proc/<pid>/maps` to locate libc.
 
 3. **Construct the payload**
 
@@ -107,7 +101,7 @@ The attack bypasses the non-executable stack by overwriting the saved return add
 
 ---
 
-## How to compile (examples)
+## How to compile
 
 1. Compile 32-bit vulnerable binary and helper:
 
