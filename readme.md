@@ -10,7 +10,7 @@ This project implements a classic stack-based buffer overflow to demonstrate a *
 - `gcc` with multilib support (if building 32-bit on a 64-bit host)
 - Python 3
 - GDB (with **peda** or a similar helper is helpful)
-- Example seed image: https://seedsecuritylabs.org/lab_env.html
+- Seed image: https://seedsecuritylabs.org/lab_env.html
 
 ---
 
